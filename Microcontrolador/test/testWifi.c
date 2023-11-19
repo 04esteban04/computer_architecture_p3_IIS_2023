@@ -156,6 +156,18 @@ esp_err_t connect_wifi()
     return status;
 }
 
+esp_err_t send_data(const char *data, int data_length, int sock) {
+    int bytes_sent = send(sock, data, data_length, 0);
+    if (bytes_sent < 0) {
+        ESP_LOGE(TAG, "Failed to send data");
+        close(sock);
+        return TCP_FAILURE;
+    }
+    ESP_LOGI(TAG, "Sent %d bytes of data", bytes_sent);
+    return TCP_SUCCESS;
+}
+
+
 // connect to the server and return the result
 esp_err_t connect_tcp_server(void)
 {
@@ -184,6 +196,17 @@ esp_err_t connect_tcp_server(void)
 	}
 
 	ESP_LOGI(TAG, "Connected to TCP server.");
+
+    //Sending Hello
+    const char *data_to_send = "Hello, server!";
+    int data_length = strlen(data_to_send);
+
+    esp_err_t send_status = send_data(data_to_send, data_length, sock);
+    if (send_status != TCP_SUCCESS) {
+        ESP_LOGI(TAG, "Failed to send data, closing connection...");
+        return TCP_FAILURE;
+    }
+
 	bzero(readBuffer, sizeof(readBuffer));
     int r = read(sock, readBuffer, sizeof(readBuffer)-1);
     for(int i = 0; i < r; i++) {
