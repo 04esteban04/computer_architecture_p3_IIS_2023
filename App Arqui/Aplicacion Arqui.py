@@ -86,7 +86,7 @@ class App:
 #Function to load images
 def load_image(name):
     #rute = os.path.join ("Imagenes", name)
-    rute = os.path.join ("/home/esteban/Desktop/P3-Arqui/computer_architecture_p3_IIS_2023/App Arqui/Imagenes/", name)
+    rute = os.path.join ("/home/esteban/Desktop/repoP3-Arqui/computer_architecture_p3_IIS_2023/App Arqui/Imagenes/", name)
     image = PhotoImage (file = rute)
     return image
 
