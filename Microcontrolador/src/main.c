@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "dht11.h"
 
-// Definiciones de pines
+// Definiciones de pines y variables
 #define MOTOR1_A    GPIO_NUM_8
 #define MOTOR1_B    GPIO_NUM_10
 
@@ -14,7 +15,20 @@
 
 int contador = 1;
 int valorIR = 0;
+char* resultadoSensorDIH;
 
+/*
+Funcion que permite realizar el movimiento hacia adelante
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Genera el movimiento hacia adelante del robot
+*/
 void moverAdelante(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio_num_t motor2_B) {
     // Motor 1
     gpio_set_level(motor1_A, 1);
@@ -25,6 +39,18 @@ void moverAdelante(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A
     gpio_set_level(motor2_B, 0);
 }
 
+/*
+Funcion que permite realizar el movimiento hacia atras
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Genera el movimiento hacia atras del robot
+*/
 void moverAtras(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio_num_t motor2_B) {
     // Motor 1
     gpio_set_level(motor1_A, 0);
@@ -35,6 +61,18 @@ void moverAtras(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, g
     gpio_set_level(motor2_B, 1);
 }
 
+/*
+Funcion que permite realizar el movimiento hacia la derecha
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Genera el movimiento hacia la derecha del robot
+*/
 void moverDerecha(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio_num_t motor2_B) {
     // Motor 1
     gpio_set_level(motor1_A, 1);
@@ -45,6 +83,18 @@ void moverDerecha(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A,
     gpio_set_level(motor2_B, 0);
 }
 
+/*
+Funcion que permite realizar el movimiento hacia la izquierda
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Genera el movimiento hacia la izquierda del robot
+*/
 void moverIzquierda(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio_num_t motor2_B) {
     // Motor 1
     gpio_set_level(motor1_A, 0);
@@ -55,6 +105,18 @@ void moverIzquierda(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_
     gpio_set_level(motor2_B, 0);
 }
 
+/*
+Funcion que permite detener el movimiento del robot
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Detiene el movimiento del robot
+*/
 void detener(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio_num_t motor2_B) {
     // Motor 1
     gpio_set_level(motor1_A, 0);
@@ -65,6 +127,18 @@ void detener(gpio_num_t motor1_A, gpio_num_t motor1_B, gpio_num_t motor2_A, gpio
     gpio_set_level(motor2_B, 0);
 }
 
+/*
+Funcion que permite corregir el movimiento del robot
+
+    Entradas:
+        motor1_A: Pin A del motor 1
+        motor1_A: Pin B del motor 1
+        motor2_A: Pin A del motor 2
+        motor2_A: Pin B del motor 2
+
+    Salidas:
+        Genera el movimiento corregido del robot
+*/
 void corregirMovimiento(){
     moverDerecha(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
     vTaskDelay(30);
@@ -82,21 +156,35 @@ void corregirMovimiento(){
     vTaskDelay(10);
 
     moverAtras(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
-    vTaskDelay(10);
-    detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
     vTaskDelay(30);
+    detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+    vTaskDelay(10);
 }
 
-void leerSensorDIH(){
-    //Sensor humedad
-    if (DHT11_read().status == DHT11_OK) { // Verifica si la lectura fue exitosa
-        ESP_LOGI("DHT11", "Temperatura: %d°C, Humedad: %d%% \n", DHT11_read().temperature, DHT11_read().humidity); 
-    } else { 
-        ESP_LOGE("DHT11", "Error al leer el sensor: %d\n", DHT11_read().status);
+/*
+Funcion que permite realizar la lectura del sensor de humedad
+
+    Entradas:
+        N/A
+
+    Salidas:
+        Retorna la lectura del sensor de humedad como cadena de caracteres
+*/
+char* leerSensorDIH() {
+    char* strData = (char*)malloc(100);
+
+    if (DHT11_read().status == DHT11_OK) {
+        sprintf(strData, "Temperatura: %d°C, Humedad: %d%% \n", DHT11_read().temperature, DHT11_read().humidity);
+    } else {
+        sprintf(strData, "Error al leer el sensor: %d\n", DHT11_read().status);
     }
+
+    return strData;
 }
 
-
+/*
+Funcion main
+*/
 void app_main(void) {
 
     // Inicialización de pines y valores
@@ -124,10 +212,11 @@ void app_main(void) {
 
         // Sensor IR
         valorIR = gpio_get_level(GPIO_NUM_1);
-        ESP_LOGI("Lectura", "%d -- IR : %d", contador, valorIR);
+        printf("Lectura %d -- IR : %d \n", contador, valorIR);
 
         // Sensor Humedad
-        leerSensorDIH();
+        resultadoSensorDIH = leerSensorDIH();
+        printf("Resultado del sensor: %s \n", resultadoSensorDIH);
         
         // Se continua en el camino
         if (valorIR == 1) { 
@@ -143,8 +232,6 @@ void app_main(void) {
         }
 
         contador++; 
-        
     }
-
 }
 
