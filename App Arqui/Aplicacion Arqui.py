@@ -1,5 +1,5 @@
 import sys
-import bluetooth
+import socket
 import os 
 import numpy as np
 from pathlib import Path
@@ -10,82 +10,64 @@ from threading import Thread
 
 
 class App:
+    
+
     def __init__(self, window):
         self.window = window
         self.window.title('Robot de Humedad')
-        self.window.geometry("1050x450")
+        self.window.geometry("1050x550")
         self.window.resizable(False,False)        
 
         #Button (Conexion)
-        self.devices_button = Button(window, text="Buscar", font=('Calibri',12), command=self.get_devices).place(x=770,y=50)
-        self.connect_button = Button(window, text="Conectar", font=('Calibri',12),command=self.connect).place(x=900,y=50)
-        self.average_button = Button(window, text="Obtener Promedio", font=('Calibri',12)).place(x=790,y=320)
-
-        # Listbox (Dispositivos disponibles)
-        self.devices_listbox = Listbox(window, width=28, height=9)
-        self.devices_listbox.place(x=35, y=75)
+        self.connect_button = Button(window, text="Conectar", font=('Calibri',12),command=self.start_server).place(x=680,y=180)
 
         # Text Space (Datos sensor humedad)
-        self.data_text = Text(window, width=31, height=9, wrap=WORD)
-        self.data_text.place(x=410, y=75)
+        self.data_text = Text(window, width=28, height=13, wrap=WORD)
+        self.data_text.place(x=210, y=115)
 
         # Text Space (Alerta conexion)
-        self.noti_text = Text(window, width=25, height=3, wrap=WORD)
-        self.noti_text.place(x=770, y=130)
+        self.noti_text = Text(window, width=30, height=4, wrap=WORD)
+        self.noti_text.place(x=600, y=290)
 
         # Promedio de datos
-        self.promedio = Label(window,width=20, height=2).place(x=435,y=320)
-    
-    def get_devices(self):
-        nearby_devices = bluetooth.discover_devices()
-        self.devices_listbox.delete(0, END)  # Limpiar la lista antes de agregar nuevos dispositivos
-        for address in nearby_devices:
-            try:
-                name = bluetooth.lookup_name(address)
-                self.devices_listbox.insert(END, f"{name} - {address}")
-            except bluetooth.btcommon.BluetoothError as err:
-                print("No se pudo obtener el nombre del dispositivo", err)
+        self.promedio = Label(window,width=20, height=2).place(x=635,y=107)
 
-    def connect(self):
-        selected_device_index = self.devices_listbox.curselection()
-        if not selected_device_index:
-            self.noti_text.delete("1.0", END)
-            self.noti_text.insert(END, "Seleccione un dispositivo antes de intentar la conexión.")
-            return
+    def start_server(self):
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind(('0.0.0.0', 12345))  # Binds to the same address and port as the C client
+        server_socket.listen(1)
 
-        selected_device_info = self.devices_listbox.get(selected_device_index)
-        selected_device_addr = selected_device_info.split(" - ")[1]
+        print("Server started, waiting for connections...")
+        self.noti_text.insert("Server started, waiting for connections...")
+        received_data_list = []
 
-        try:
-            self.device = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-            print(selected_device_addr)
-            self.device.connect((selected_device_addr,1))
-            self.noti_text.insert(END, "Conectado a:", selected_device_info)
+        while True:
+            conn, addr = server_socket.accept()
+            print(f"Connection established from {addr}")
 
-            # Inicia un hilo para recibir datos en segundo plano
-            receive_thread = Thread(target=self.receive_data)
-            receive_thread.start()
+            data = conn.recv(1024)  # Receive data (assuming it's smaller than 1024 bytes)
+            if data:
+                data_deco = data.decode('utf-8')
+                self.data_text.insert(data_deco)
+                received_data_list.append(data_deco)
 
-        except bluetooth.btcommon.BluetoothError as err:
-            self.noti_text.delete("1.0", END)
-            self.noti_text.insert(END, "No se pudo conectar:", err)
+                if len(received_data_list) > 25:
+                    received_data_list = received_data_list[-25:]
 
-    def receive_data(self):
-        try:
-            while True:
-                data = self.device.recv(1024)
-                if not data:
-                    break
-                self.data_text.insert(END, data)
-                self.data_text.see(END)
-        except bluetooth.btcommon.BluetoothError as err:
-            print("Error al recibir datos:", err)
-        finally:
-            self.device.close()
+                print(f"Received data: {data_deco}")
+
+                # Calcular el promedio
+                promedio = sum(received_data_list) / len(received_data_list)
+                self.promedio.textvariable(promedio)
+
+                # Echo the received data back to the client
+                conn.sendall(b"Server received your data: " + data)
+
+            conn.close()
 
 #Function to load images
 def load_image(name):
-    #rute = os.path.join ("Imagenes", name)
+    #rute = os.path.join ("Imagenes/", name)
     rute = os.path.join ("/home/esteban/Desktop/repoP3-Arqui/computer_architecture_p3_IIS_2023/App Arqui/Imagenes/", name)
     image = PhotoImage (file = rute)
     return image
@@ -93,7 +75,7 @@ def load_image(name):
 if __name__ == "__main__":
     window = Tk()
     bgMain = load_image("Principal.png")
-    P_canvas= Canvas (window, width = 1050, height = 450, bg = "black")
+    P_canvas= Canvas (window, width = 1050, height = 550, bg = "black")
     P_canvas.place (x = 0, y = 0)
     ImgCanvas = P_canvas.create_image (0, 0, anchor = NW, image = bgMain)
     app = App(window)
