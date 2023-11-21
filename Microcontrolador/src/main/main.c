@@ -29,7 +29,8 @@
 #define MOTOR2_A    GPIO_NUM_2
 #define MOTOR2_B    GPIO_NUM_11
 
-int contador = 1;
+int contadorLectura = 1;
+int contadorMovimiento = 0;
 int valorIR = 0;
 char* resultadoSensorDIH;
 
@@ -182,6 +183,32 @@ Funcion que permite corregir el movimiento del robot
         Genera el movimiento corregido del robot
 */
 void corregirMovimiento(){
+    if (contadorMovimiento >= 16) {
+        detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(30);
+    }
+    else if (contadorMovimiento > 5){    
+        moverIzquierda(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(15);
+        detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(30);
+    }
+    else if (contadorMovimiento == 5){
+        moverAtras(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(30);
+        detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(30);
+    }
+    else{
+        moverDerecha(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(15);
+        detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
+        vTaskDelay(30);
+    }
+
+    contadorMovimiento++;
+
+    /*
     moverDerecha(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
     vTaskDelay(30);
     detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
@@ -201,6 +228,7 @@ void corregirMovimiento(){
     vTaskDelay(30);
     detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
     vTaskDelay(10);
+    */
 }
 
 /*
@@ -467,7 +495,7 @@ void app_main(void) {
 
         // Sensor IR
         valorIR = gpio_get_level(GPIO_NUM_1);
-        printf("Lectura %d -- IR : %d \n", contador, valorIR);
+        printf("Lectura %d -- IR : %d \n", contadorLectura, valorIR);
 
         // Sensor Humedad
         resultadoSensorDIH = leerSensorDIH();
@@ -479,6 +507,7 @@ void app_main(void) {
             vTaskDelay(10);
             detener(MOTOR1_A, MOTOR1_B, MOTOR2_A, MOTOR2_B);
             vTaskDelay(30);
+            contadorMovimiento = 0;
         }
 
         // Se sale del camino
@@ -493,6 +522,6 @@ void app_main(void) {
             status = reconnect_tcp_server("192.168.0.9");
         }
         
-        contador++; 
+        contadorLectura++; 
     }
 }
