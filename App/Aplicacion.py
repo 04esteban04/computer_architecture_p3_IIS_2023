@@ -46,7 +46,7 @@ class App:
         server_socket.listen(1)
 
         #print("Server started, waiting for connections...")
-        self.noti_text.insert(END, "Server started, waiting for connections... \n")
+        self.noti_text.insert(END, "Servidor iniciado, esperando por conexiones ... \n")
         received_data_temp = []
         received_data_hum = []
 
@@ -56,7 +56,7 @@ class App:
             
             self.show_data(addr, data, received_data_temp, received_data_hum)
 
-            conn.sendall(b"Server received your data: " + data)
+            conn.sendall(b"El servidor recibio sus datos: " + data)
             conn.close()
 
     """
@@ -64,7 +64,7 @@ class App:
     """
     def show_data(self, addr, data, received_data_temp, received_data_hum):
         #print(f"Connection established from {addr} \n")
-        self.noti_text.insert(END, f"Connection established from {addr} \n")
+        self.noti_text.insert(END, f"Conexion establecida en {addr} \n")
         self.noti_text.see(END)
 
 
