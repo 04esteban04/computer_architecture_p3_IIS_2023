@@ -50,6 +50,8 @@ class App:
         received_data_temp = []
         received_data_hum = []
 
+        self.noti_text.update_idletasks()
+
         while True:
             conn, addr = server_socket.accept()
             data = conn.recv(1024)  # Receive data (assuming it's smaller than 1024 bytes)
